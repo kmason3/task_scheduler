@@ -1,0 +1,99 @@
+tasks:
+  - id: 1
+    description: Eat Breakfast
+    start: "07:00"
+    duration: 30
+    compatibility:
+      - 2
+      - 5
+      - 7
+      - 3
+  - id: 2
+    description: Do the dishes
+    start: null
+    duration: 20
+    compatibility:
+      - 1
+      - 7
+      - 9
+  - id: 3
+    description: Watch the sunrise
+    start: "07:10"
+    duration: 15
+    compatibility:
+      - 11
+      - 1
+  - id: 4
+    description: Hit the Treadmill
+    start: null
+    duration: 60
+    compatibility:
+      - 5
+      - 7
+      - 11
+  - id: 5
+    description: Catch up on all the things
+    start: null
+    duration: 25
+    compatibility: 
+      - 1
+      - 4
+      - 9
+  - id: 6
+    description: Buy groceries for the week
+    start: null
+    duration: 75
+    compatibility: 
+      - 7
+      - 9
+  - id: 7
+    description: Catch up with your family at home
+    start: null
+    duration: 45
+    compatibility: 
+      - 1
+      - 2
+      - 4
+      - 6
+      - 9
+  - id: 8
+    description: Vacuum the house
+    start: null
+    duration: 35
+    compatibility:
+      - 9
+      - 11
+  - id: 9
+    description: Enjoy a snack
+    start: null
+    duration: 15
+    compatibility:
+      - 2
+      - 5
+      - 6
+      - 7
+      - 8
+      - 10
+      - 11
+  - id: 10
+    description: Mow the Lawn
+    start: null
+    duration: 75
+    compatibility:
+      - 9
+      - 11
+  - id: 11
+    description: Listen to Skeptics Guide to the Universe
+    start: null
+    duration: 90
+    compatibility:
+      - 3
+      - 4
+      - 8
+      - 9
+      - 10
+  - id: 12
+    description: Midmorning break
+    start: "10:45"
+    duration: 20
+    compatibility:
