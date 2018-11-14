@@ -22,7 +22,8 @@ def tasksWithTimes(taskList):
     nonNullList=[]
     for task in taskList:
         if task['start'] != None:
-            nonNullList.append(task)        
+            nonNullList.append(task)
+            task['timeCondition'] = True        
     nonNullList = sortByStart(nonNullList)
     return nonNullList
 
@@ -31,6 +32,7 @@ def taskToBeTimed(taskList):
     for task in taskList:
         if task['start'] == None:
             nullList.append(task)
+            task['timeCondition'] = False
     nullList = sortByDuration(nullList)        
     return nullList
 
