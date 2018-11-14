@@ -47,6 +47,14 @@ def assignTimesToDict(taskList):
         task["durTime"] = calcDurTime(task)
     return taskList
 
+# def assignTimesToTask(task):
+#     endTime =  calcEndTime(task)
+#     task['endTime'] = endTime
+#     task['end'] = datetime.datetime.strftime(endTime,'%H:%M')
+#     task['durTime'] = assignDurTime(task)
+#     task['startTime'] = calcStartTime(task)
+
+
 def compatable(task1, task2):
     task1Id = task1["id"]
     task2CompList = task2["compatibility"]
@@ -59,11 +67,22 @@ def compatable(task1, task2):
 def calcLeastEndTime(task1, task2):
     if task1["endTime"] < task2["endTime"]:
         return task1["end"]
-    else:
+    elif task2["endTime"] < task1["endTime"]:
+        return task2["end"]
+def calcGreaterEndTime(task1, task2):
+    if task1["endTime"] > task2["endTime"]:
+        return task1["end"]
+    elif task2["endTime"] > task1["endTime"]:
         return task2["end"]
 
 def taskWithLeastEndTime(task1,task2):
     if task1["endTime"] < task2["endTime"]:
+        return task1
+    else:
+        return task2
+
+def taskWithGreaterEndTime(task1,task2):
+    if task1["endTime"] > task2["endTime"]:
         return task1
     else:
         return task2
@@ -97,6 +116,11 @@ def printSchedule(taskList):
     for task in taskList:
         print(task['description'] + ','+ task["start"] + ' ' + task['end'])
 
+def timeIsBetween(startTime,endTime,timeToCheck):
+    if startTime < endTime:
+        return timeToCheck >= startTime and timeToCheck <= endTime
+
+
 # def overlap(task1,task2):
 
 def createSchedule(taskList):
@@ -104,11 +128,11 @@ def createSchedule(taskList):
     assignTimesToDict(timed)
     unTimed = taskToBeTimed(taskList)
     tasks = timed + unTimed
-    mindur = unTimed[0]['duration']
     A = []
     k = 0
     j=0
-    A.append(tasks[0])
+    if len(A) == 0:
+        A.append(tasks[0])
     for m in range(1,len(tasks)):
         if tasks[m] in timed:
             if tasks[k]['end'] > tasks[m]['start'] and compatable(tasks[k],tasks[m]):
@@ -122,13 +146,52 @@ def createSchedule(taskList):
                 print("Unable to schedule tasks due to compatability conflict")
         
         if tasks[m] in unTimed:
-           printSchedule(A)
+            for a in range(1, len(A)):
+                if calcDifInStarts(A[j], A[a]) > calcDurTime(tasks[m]) and compatable(A[j],tasks[m]):
+                    leastEnd = calcLeastEndTime(A[j],A[j+1])
+                    greaterEnd = calcGreaterEndTime(A[j],A[j+1])
+                    taskWithGreaterEnd = taskWithGreaterEndTime(A[j],A[j+1])
+                    taskWithLeastEnd = taskWithLeastEndTime(A[j],A[j+1])
+                    
+                    if compatable(taskWithLeastEnd,tasks[m]):
+                        tasks[m]['start'] = leastEnd
+                    else:
+                        tasks[m]['start'] = greaterEnd
+                    
 
-## Main Testing ##
+                    A.append(tasks[m])
+                    A = assignTimesToDict(A)
+                    A = sortByStart(A)
+                    j=a
+                # elif  compatable(A[len(A)-1],tasks[m]):
+                #     print('Got Here')
+                #     tasks[m]['start'] = A[len(A)-1]['end']
+                #     A.append(tasks[m])
+                #     A = assignTimesToDict(A)
+                #     A = sortByStart(A)
+                #     j=a
+            
+                
+        # print(tasks[m]['description'])            
+
+    # printSchedule(A)
+    return A
+    
+def addTheRest(taskList1, taskList2):
+    for task in taskList1:
+        if task not in taskList2:
+                task['start'] = taskList2[len(taskList2)-1]['end']
+                taskList2.append(task)
+                assignTimesToDict(taskList2)
+    return taskList2
+######## Main Testing ########
 
 numOfTasks = len(doc["tasks"])
 origList = doc["tasks"]
-createSchedule(origList)
+timed = createSchedule(origList)
+total = addTheRest(origList,timed)
+printSchedule(total)
+
 # timed = tasksWithTimes(origList)
 # timed = addTimesToDict(timed)
 # difStart = calcDifInStarts(timed[0], timed[1])
