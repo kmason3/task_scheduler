@@ -58,7 +58,8 @@ def assignTimesToDict(taskList):
 def compatable(task1, task2):
     task1Id = task1["id"]
     task2CompList = task2["compatibility"]
-
+    if task2CompList == None or task1Id == None:
+        return False
     if task1Id in task2CompList:
         return True
     else:
@@ -118,7 +119,7 @@ def printSchedule(taskList):
 
 def timeIsBetween(startTime,endTime,timeToCheck):
     if startTime < endTime:
-        return timeToCheck >= startTime and timeToCheck <= endTime
+        return timeToCheck > startTime and timeToCheck < endTime
 
 
 # def overlap(task1,task2):
@@ -155,7 +156,7 @@ def createSchedule(taskList):
                     
                     if compatable(taskWithLeastEnd,tasks[m]):
                         tasks[m]['start'] = leastEnd
-                    else:
+                    elif compatable(taskWithGreaterEnd, tasks[m]):
                         tasks[m]['start'] = greaterEnd
                     
 
@@ -184,6 +185,16 @@ def addTheRest(taskList1, taskList2):
                 taskList2.append(task)
                 assignTimesToDict(taskList2)
     return taskList2
+
+def fixCompatIssue(total):
+    for task1 in range(0,len(total)):
+        for task2 in range(1,len(total)):
+            if not(compatable(total[task1], total[task2])) and timeIsBetween(total[task1]['startTime'],total[task1]['endTime'],total[task2]['startTime']) and not(total[task1]['description'] == total[task2]['description']) :
+                print(total[task1]['description'] + ' not compat with: ' + total[task2]['description'])
+                total[task1]['start'] = total[task2]['end']
+                A = assignTimesToDict(total)
+                A = sortByStart(total)
+    return A
 ######## Main Testing ########
 
 numOfTasks = len(doc["tasks"])
@@ -191,6 +202,11 @@ origList = doc["tasks"]
 timed = createSchedule(origList)
 total = addTheRest(origList,timed)
 printSchedule(total)
+total1 = fixCompatIssue(total)
+print('\n')
+printSchedule(total1)
+
+
 
 # timed = tasksWithTimes(origList)
 # timed = addTimesToDict(timed)
