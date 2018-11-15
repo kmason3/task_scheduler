@@ -1,38 +1,42 @@
 #! /usr/bin/python
 
 import yaml
-import json, operator, datetime
+import operator, datetime, sys, os
 
-with open(r'C:\Users\masonk\Downloads\tasks_to_complete.yml', 'r') as stream:
-    try:
-        doc = yaml.load(stream)
-    except yaml.YAMLError as exc:
-        print(exc)
+#                                                                                                                       #
+# This program takes an input of task in a YAML file format, schedules tasks without times and prints the full schedule.#
+#                                                                                                                       #           
 
+# Fuction to open file
+# @param pathToFile YAML-File
+# @return doc Dict of tasks
+def openFile(pathToFile):
+    with open(pathToFile) as stream:
+        try:
+            doc = yaml.load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+    return doc
+
+# Sorts tasks by duration, ascending
 def sortByDuration(taskList):
     return sorted(taskList, key=operator.itemgetter('duration'))
 
+# Sorts list by duratio,n descending
 def sortByDurationRev(taskList):
     return sorted(taskList, key=operator.itemgetter('duration'),reverse=True)
 
+# Sorts list by start
 def sortByStart(taskList):
     return sorted(taskList, key=operator.itemgetter('start'))
 
+# Sorts list by end
 def sortByEnd(taskList):
     return sorted(taskList, key=operator.itemgetter('end'))
 
-def sortFinal(taskList):
-    k = 0
-    for task in range(1,len(taskList)):
-        if taskList[k]['startTime'] == taskList[task]['startTime'] :
-            print(taskList[k]['description'] + ' ' + taskList[task]['description'])
-            temp = taskList[k]
-            taskList[k] = taskList[task]
-            taskList[task] = temp
-            k=task
-    return taskList
-
-
+# Seperates tasks with assigned times and adds time condition
+# @param taskList 
+# @return taskList of tasks with times
 def tasksWithTimes(taskList):
     nonNullList=[]
     for task in taskList:
@@ -42,7 +46,10 @@ def tasksWithTimes(taskList):
     nonNullList = sortByStart(nonNullList)
     return nonNullList
 
-def taskToBeTimed(taskList):
+# Seperates tasks without assigned times and adds time condition
+# @param taskList 
+# @return taskList of tasks without assigned times
+def tasksToBeTimed(taskList):
     nullList=[]
     for task in taskList:
         if task['start'] == None:
@@ -51,6 +58,9 @@ def taskToBeTimed(taskList):
     nullList = sortByDuration(nullList)        
     return nullList
 
+# Assigns startTime, end, endTime, and durTime to dictionary entries
+# @param taskList
+# @return taskList
 def assignTimesToDict(taskList):
     for task in taskList:
         startTime = task["start"]
@@ -64,6 +74,10 @@ def assignTimesToDict(taskList):
         task["durTime"] = calcDurTime(task)
     return taskList
 
+# Checks if two tasks are compatable
+# @param task1  
+# @param task2
+# @return boolean
 def compatable(task1, task2):
     task1Id = task1["id"]
     task2CompList = task2["compatibility"]
@@ -74,68 +88,82 @@ def compatable(task1, task2):
     else:
         return False
 
+# Calculates the lowest end time of two tasks
+# @param task1  
+# @param task2
+# @return end
 def calcLeastEndTime(task1, task2):
     if task1["endTime"] < task2["endTime"]:
         return task1["end"]
     elif task2["endTime"] < task1["endTime"]:
         return task2["end"]
+
+# Calculates the greatest end time of two tasks
+# @param task1  
+# @param task2
+# @return end
 def calcGreaterEndTime(task1, task2):
     if task1["endTime"] > task2["endTime"]:
         return task1["end"]
     elif task2["endTime"] > task1["endTime"]:
         return task2["end"]
 
+# Determines which of two tasks has least end time
+# @param task1  
+# @param task2
+# @return task with least endTime
 def taskWithLeastEndTime(task1,task2):
     if task1["endTime"] < task2["endTime"]:
         return task1
     else:
         return task2
 
+# Determines which of two tasks has greatest end time
+# @param task1  
+# @param task2
+# @return task with greatest endTime
 def taskWithGreaterEndTime(task1,task2):
     if task1["endTime"] > task2["endTime"]:
         return task1
     else:
         return task2
 
+# Calculates differece in start time of two tasks
+# @param task1  
+# @param task2
+# @return difference in start times as datetime
 def calcDifInStarts(task1, task2):
     return task2["startTime"] - task1["startTime"]
 
+# Calculates duration as datetime
+# @param task
+# @return duration as datetime
 def calcDurTime(task):
     dur = task["duration"]
     return datetime.timedelta(minutes=dur)
 
+# Calculates start as datetime
+# @param task
+# @retrun start as datetime
 def calcStartTime(task):
     startTime = task["start"]
     return datetime.datetime.strptime(startTime, '%H:%M')
-    
-def calcEndTime(task):
-    startAsTime = calcStartTime(task)
-    dur = task["duration"]
-    endAsTime = startAsTime + datetime.timedelta(minutes=dur) 
-    return endAsTime
 
-def calcEnd(task):
-    endAsTime = calcEndTime(task)
-    return datetime.datetime.strftime(endAsTime,'%H:%M')
-
-def assignDurTime(task):
-    durTime = calcDurTime(task)
-    task['durTime'] = durTime
-
-def printSchedule(taskList):
-    taskList = sortByEnd(taskList)
-    taskList = sortByStart(taskList)
-    for task in taskList:
-        print(task['description'] + ','+ task["start"] + ' ' + task['end'])
-
+# Checks if a time is between two times
+# @param startTime Begining of timespan to check between
+# @param endTime End of timespan to check between
+# @return boolean
 def timeIsBetween(startTime,endTime,timeToCheck):
     if startTime < endTime:
         return timeToCheck > startTime and timeToCheck < endTime
 
+# Creates schedule using the time constraints of times with assigned tasks
+# @param taskList
+# @return A Partially complete schedule
 def createSchedule(taskList):
     timed = tasksWithTimes(taskList)
     assignTimesToDict(timed)
-    unTimed = taskToBeTimed(taskList)
+    unTimed = tasksToBeTimed(taskList)
     tasks = timed + unTimed
     A = []
     k = 0
@@ -169,7 +197,11 @@ def createSchedule(taskList):
                     A = sortByStart(A)
                     j=a               
     return A
-    
+
+# Adds the remaining unscheduled tasks to lists
+# @param taskList1 Original list of tasks
+# @param taskList2 Partially complete schedule from createSchedule
+# @return taskList2 Non-Optimized schedule      
 def addTheRest(taskList1, taskList2):
     taskList1 = sortByDurationRev(taskList1)
     for task in taskList1:
@@ -184,6 +216,9 @@ def addTheRest(taskList1, taskList2):
                     assignTimesToDict(taskList2)
     return taskList2
 
+# Removes any compatability collisions
+# @param total List of tasks
+# @return A List of tasks without compatability collisions
 def fixNonCompatIssue(total):
     A=[]
     for task1 in range(0,len(total)):
@@ -199,22 +234,32 @@ def fixNonCompatIssue(total):
                     A = sortByStart(total)                       
     return A
 
+# Prints final schedule
+# @param taskList Final schedule of tasks
+def printSchedule(taskList):
+    taskList = sortByEnd(taskList)
+    taskList = sortByStart(taskList)
+    for task in taskList:
+        print(task['description'] + ','+ task["start"] + ' ' + task['end'])
 
-######## Main Testing ########
 
-numOfTasks = len(doc["tasks"])
-origList = doc["tasks"]
-timed = createSchedule(origList)
-# origList1 = sortByDurationRev(origList)
-total = addTheRest(origList,timed)
-total1 = fixNonCompatIssue(total)
-printSchedule(total1)
-# print('\n')
-# total2 = sortFinal(total1)
-# printSchedule(total2)
-# print('\n')
-# total3 = sortByEnd(total1)
-# printSchedule(total3)
-# print('\n')
-# total4 = sortByStart(total3)
-# printSchedule(total4)
+
+######## Main Function ########
+
+argLen = len(sys.argv)
+usage = '\nNAME\n \ttaskScheduler [path_to_file]\n\nSYNOPSIS\n\tTakes an input of task in a YAML file, schedules the tasks and prints the full schedule\n\n'
+
+# Checks if argument is of correct length and file exists
+if(argLen == 2 ) and os.path.isfile(sys.argv[1]):
+  
+    pathToFile = sys.argv[1]
+    doc = openFile(pathToFile)
+    taskList = doc["tasks"]
+    timed = createSchedule(taskList)
+    total = addTheRest(taskList,timed)
+    total1 = fixNonCompatIssue(total)
+    printSchedule(total1)
+   
+else:
+    print(usage)
+
