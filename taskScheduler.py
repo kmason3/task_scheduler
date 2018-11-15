@@ -3,20 +3,35 @@
 import yaml
 import json, operator, datetime
 
-with open(r'C:\Users\masonk\Downloads\tasks_to_complete.yml', 'r') as steam:
+with open(r'C:\Users\masonk\Downloads\tasks_to_complete.yml', 'r') as stream:
     try:
-        doc = yaml.load(steam)
+        doc = yaml.load(stream)
     except yaml.YAMLError as exc:
         print(exc)
 
 def sortByDuration(taskList):
     return sorted(taskList, key=operator.itemgetter('duration'))
 
+def sortByDurationRev(taskList):
+    return sorted(taskList, key=operator.itemgetter('duration'),reverse=True)
+
 def sortByStart(taskList):
     return sorted(taskList, key=operator.itemgetter('start'))
 
 def sortByEnd(taskList):
     return sorted(taskList, key=operator.itemgetter('end'))
+
+def sortFinal(taskList):
+    k = 0
+    for task in range(1,len(taskList)):
+        if taskList[k]['startTime'] == taskList[task]['startTime'] :
+            print(taskList[k]['description'] + ' ' + taskList[task]['description'])
+            temp = taskList[k]
+            taskList[k] = taskList[task]
+            taskList[task] = temp
+            k=task
+    return taskList
+
 
 def tasksWithTimes(taskList):
     nonNullList=[]
@@ -48,14 +63,6 @@ def assignTimesToDict(taskList):
         task["endTime"] = endAsTime
         task["durTime"] = calcDurTime(task)
     return taskList
-
-# def assignTimesToTask(task):
-#     endTime =  calcEndTime(task)
-#     task['endTime'] = endTime
-#     task['end'] = datetime.datetime.strftime(endTime,'%H:%M')
-#     task['durTime'] = assignDurTime(task)
-#     task['startTime'] = calcStartTime(task)
-
 
 def compatable(task1, task2):
     task1Id = task1["id"]
@@ -116,15 +123,14 @@ def assignDurTime(task):
     task['durTime'] = durTime
 
 def printSchedule(taskList):
+    taskList = sortByEnd(taskList)
+    taskList = sortByStart(taskList)
     for task in taskList:
         print(task['description'] + ','+ task["start"] + ' ' + task['end'])
 
 def timeIsBetween(startTime,endTime,timeToCheck):
     if startTime < endTime:
         return timeToCheck > startTime and timeToCheck < endTime
-
-
-# def overlap(task1,task2):
 
 def createSchedule(taskList):
     timed = tasksWithTimes(taskList)
@@ -140,8 +146,7 @@ def createSchedule(taskList):
         if tasks[m] in timed:
             if tasks[k]['end'] > tasks[m]['start'] and compatable(tasks[k],tasks[m]):
                 A.append(tasks[m])
-                k=m
-                
+                k=m               
             elif tasks[k]['end'] <= tasks[m]['start']:
                 A.append(tasks[m])
                 k=m
@@ -154,63 +159,62 @@ def createSchedule(taskList):
                     leastEnd = calcLeastEndTime(A[j],A[j+1])
                     greaterEnd = calcGreaterEndTime(A[j],A[j+1])
                     taskWithGreaterEnd = taskWithGreaterEndTime(A[j],A[j+1])
-                    taskWithLeastEnd = taskWithLeastEndTime(A[j],A[j+1])
-                    
+                    taskWithLeastEnd = taskWithLeastEndTime(A[j],A[j+1])                    
                     if compatable(taskWithLeastEnd,tasks[m]):
                         tasks[m]['start'] = leastEnd
                     elif compatable(taskWithGreaterEnd, tasks[m]):
-                        tasks[m]['start'] = greaterEnd
-                    
-
+                        tasks[m]['start'] = greaterEnd                    
                     A.append(tasks[m])
                     A = assignTimesToDict(A)
                     A = sortByStart(A)
-                    j=a
-                # elif  compatable(A[len(A)-1],tasks[m]):
-                #     print('Got Here')
-                #     tasks[m]['start'] = A[len(A)-1]['end']
-                #     A.append(tasks[m])
-                #     A = assignTimesToDict(A)
-                #     A = sortByStart(A)
-                #     j=a
-            
-                
-        # print(tasks[m]['description'])            
-
-    # printSchedule(A)
+                    j=a               
     return A
     
 def addTheRest(taskList1, taskList2):
+    taskList1 = sortByDurationRev(taskList1)
     for task in taskList1:
         if task not in taskList2:
-                task['start'] = taskList2[len(taskList2)-1]['end']
-                taskList2.append(task)
-                assignTimesToDict(taskList2)
+                if compatable(task,taskList2[len(taskList2)-1]) and not(timeIsBetween(taskList2[len(taskList2)-2]['startTime'],taskList2[len(taskList2)-2]['endTime'], taskList2[len(taskList2)-1]['startTime'])) and not(timeIsBetween(taskList2[len(taskList2)-2]['startTime'],taskList2[len(taskList2)-2]['endTime'], taskList2[len(taskList2)-1]['endTime'])):
+                    task['start'] = taskList2[len(taskList2)-1]['start']
+                    taskList2.append(task)
+                    assignTimesToDict(taskList2)
+                else:
+                    task['start'] = taskList2[len(taskList2)-1]['end']
+                    taskList2.append(task)
+                    assignTimesToDict(taskList2)
     return taskList2
 
-def fixCompatIssue(total):
+def fixNonCompatIssue(total):
+    A=[]
     for task1 in range(0,len(total)):
         for task2 in range(1,len(total)):
-            if not(compatable(total[task1], total[task2])) and timeIsBetween(total[task1]['startTime'],total[task1]['endTime'],total[task2]['startTime']) and not(total[task1]['description'] == total[task2]['description']) :
-                print(total[task1]['description'] + ' not compat with: ' + total[task2]['description'])
-                total[task1]['start'] = total[task2]['end']
-                A = assignTimesToDict(total)
-                A = sortByStart(total)
+            if not(compatable(total[task1], total[task2])) and (timeIsBetween(total[task1]['startTime'],total[task1]['endTime'],total[task2]['startTime']) or timeIsBetween(total[task1]['startTime'],total[task1]['endTime'],total[task2]['endTime'])) and not(total[task1]['description'] == total[task2]['description']):
+                if total[task1]['timeCondition'] == False:
+                    total[task1]['start'] = total[task2]['end']
+                    A = assignTimesToDict(total)
+                    A = sortByStart(total)
+                elif total[task1]['timeCondition'] == True:
+                    total[task2]['start'] = total[task1]['end']
+                    A = assignTimesToDict(total)
+                    A = sortByStart(total)                       
     return A
+
+
 ######## Main Testing ########
 
 numOfTasks = len(doc["tasks"])
 origList = doc["tasks"]
 timed = createSchedule(origList)
+# origList1 = sortByDurationRev(origList)
 total = addTheRest(origList,timed)
-printSchedule(total)
-total1 = fixCompatIssue(total)
-print('\n')
+total1 = fixNonCompatIssue(total)
 printSchedule(total1)
-
-
-
-# timed = tasksWithTimes(origList)
-# timed = addTimesToDict(timed)
-# difStart = calcDifInStarts(timed[0], timed[1])
-# # print(calcEnd(timed[0]))
+# print('\n')
+# total2 = sortFinal(total1)
+# printSchedule(total2)
+# print('\n')
+# total3 = sortByEnd(total1)
+# printSchedule(total3)
+# print('\n')
+# total4 = sortByStart(total3)
+# printSchedule(total4)
